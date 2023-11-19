@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+{% block content %}
+<main role="main">
+  <div id="form-area">
+  <form enctype = "multipart/form-data" onsubmit="return false;">
+    <div class="input-group">
+      <input id="file" type="file" name="static_file" />
+      <button id="upload-button" onclick="uploadFile(this.form)">Upload</button>
+    </div>
+    </form>
+  </div>
+  
+  <div id="static_file_response" style="display: none">
+    <div class="wrapper">
+      <div class="box-wrap">
+        <div class="box one"></div>
+        <div class="box two"></div>
+        <div class="box three"></div>
+        <div class="box four"></div>
+        <div class="box five"></div>
+        <div class="box six"></div>
+      </div>
+    </div>
+  </div>
+  <div id="download">
+    <button id="newtr" style="display: none;" onclick=location.reload()>
+      Transcribe new file!
+    </button>
+  </div>
+
+</main>
+
+<script type="text/javascript" src="/static/app.js"></script>
+
+
+{% endblock %}
