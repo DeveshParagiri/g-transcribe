@@ -36,6 +36,7 @@ class GCStorage:
         try:
             blob = bucket.blob(blob_destination)
             blob.upload_from_filename(file_path)
+            print("UPLOADED:", file_path)
             return True
         except Exception as e:
             print(e)
@@ -72,8 +73,10 @@ def transcribe_audio(project_id: str, audio_name: str, audio_location: str, lang
 
     # Transcribing audio file
 
-    transcript=''
+    transcripted_file=''
     gcs_uri = 'gs://' + bucket_name + '/' + audio_destination
+    
+    print(gcs_uri)
 
     config = cloud_speech.RecognitionConfig(
         auto_decoding_config=cloud_speech.AutoDetectDecodingConfig(),
@@ -81,20 +84,43 @@ def transcribe_audio(project_id: str, audio_name: str, audio_location: str, lang
         model='chirp',
     )
 
-    request = cloud_speech.RecognizeRequest(
+    file_metadata = cloud_speech.BatchRecognizeFileMetadata(uri=gcs_uri)
+
+    # request = cloud_speech.RecognizeRequest(
+    #     recognizer=f"projects/{project_id}/locations/us-central1/recognizers/chirp-english",
+    #     config=config,
+    #     uri=gcs_uri,
+    # )
+    
+    request = cloud_speech.BatchRecognizeRequest(
         recognizer=f"projects/{project_id}/locations/us-central1/recognizers/chirp-english",
         config=config,
-        uri=gcs_uri,
+        files=[file_metadata],
+        recognition_output_config=cloud_speech.RecognitionOutputConfig(
+            inline_response_config=cloud_speech.InlineOutputConfig(),
+        ),
     )
+    # Transcribes the audio into text
+    operation = speech_client.batch_recognize(request=request)
 
-    response = speech_client.recognize(request=request)
+    # print("Waiting for operation to complete...")
+    response = operation.result(timeout=120)
 
-    for result in response.results:
-        transcript += result.alternatives[0].transcript
+    # print(response)    
+    # print(type(response))
+
+    # with open('info.txt','w+') as f:
+    for result in response.results[gcs_uri].transcript.results:
+        transcripted_file += result.alternatives[0].transcript
+
+    # for result in response.results[gcs_uri].transcript.results:
+    #     print(f"Transcript: {result.alternatives[0].transcript}")
+    # for result in response:
+    #     transcript += result.alternatives[0].transcript
     
     transcript_file = f'Transcription_{datetime.now().strftime("%Y_%m_%d-%I_%M_%S_%p")}.txt'
     with open(transcript_file,'w+') as f:
-        f.write(transcript)
+        f.write(transcripted_file)
     
     # Upload to transcript folder
     transcript_destination = f'transcripts/{transcript_file}'
@@ -112,6 +138,6 @@ def transcribe_audio(project_id: str, audio_name: str, audio_location: str, lang
     print("TIME TAKEN: ", str(timedelta(seconds=end-start)))
     print("==============================================================")
 
-    return transcript
+    return transcripted_file
 
 # transcribe_audio('tpus-302411','jfk.wav','en-US')
