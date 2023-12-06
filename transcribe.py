@@ -5,6 +5,7 @@ from google.cloud import speech_v2, storage
 from google.cloud.speech_v2.types import cloud_speech
 from google.oauth2 import service_account
 from google.api_core import client_options
+import logging
 
 import base64
 import json
@@ -16,6 +17,7 @@ creds_info = json.loads(creds_json_str)
 # creds = Credentials.from_service_account_info(creds_info)
 
 credentials = service_account.Credentials.from_service_account_info(creds_info)
+logging.basicConfig(level=logging.INFO)
 
 class GCStorage:
     def __init__(self, storage_client):
@@ -57,7 +59,7 @@ def transcribe_audio(project_id: str, audio_name: str, audio_location: str, lang
     speech_client = speech_v2.SpeechClient(client_options=client_options_var, credentials=credentials)
 
     gcs = GCStorage(storage_client=storage_client)
-
+    logging.info(f'GCS: {gcs}')
     # Creating bucket if not present
     bucket_name = 'text-stores'
     if not bucket_name in gcs.list_buckets():
@@ -68,15 +70,16 @@ def transcribe_audio(project_id: str, audio_name: str, audio_location: str, lang
     # Uploading audio file to audio-files folder
     audio_destination = f'audio-files/{audio_name}'
     # audio_path = f'{os.getcwd()}/{audio}'
-
+    logging.info(audio_destination)
     gcs.upload_to_bucket(bucket=bucket_gcs, blob_destination=audio_destination, file_path=audio_location)
 
+    
     # Transcribing audio file
 
     transcripted_file=''
     gcs_uri = 'gs://' + bucket_name + '/' + audio_destination
     
-    print(gcs_uri)
+    logging.info(gcs_uri)
 
     config = cloud_speech.RecognitionConfig(
         auto_decoding_config=cloud_speech.AutoDetectDecodingConfig(),
@@ -103,9 +106,11 @@ def transcribe_audio(project_id: str, audio_name: str, audio_location: str, lang
     # Transcribes the audio into text
     operation = speech_client.batch_recognize(request=request)
 
+    logging.info(operation)
     # print("Waiting for operation to complete...")
     response = operation.result(timeout=120)
 
+    logging.info(response)
     # print(response)    
     # print(type(response))
 
@@ -117,6 +122,7 @@ def transcribe_audio(project_id: str, audio_name: str, audio_location: str, lang
     #     print(f"Transcript: {result.alternatives[0].transcript}")
     # for result in response:
     #     transcript += result.alternatives[0].transcript
+    logging.info(transcripted_file)
     
     transcript_file = f'Transcription_{datetime.now().strftime("%Y_%m_%d-%I_%M_%S_%p")}.txt'
     with open(transcript_file,'w+') as f:
